@@ -1,6 +1,11 @@
 import EditorJS from '@editorjs/editorjs';
 import AddGif from './tools/add-gif.tool';
 import PasteURL from './tools/paste-url.tool';
+import Singleton from './tools/singleton';
+
+
+const container = document.querySelector(".all-gifs-results");
+let selectedUrls = [];
 
 
 let editedData = (document.getElementById("content").value !== null && document.getElementById("content").value !== "") ? JSON.parse(document.getElementById("content").value) : {};
@@ -36,7 +41,6 @@ const editor = new EditorJS({
 });
 
 
-
 // Search for gif API
 function getUserInput() {
 	var inputValue = document.querySelector(".search-for-gif").value;
@@ -54,10 +58,8 @@ document.querySelector(".search-for-gif").addEventListener("keyup", function (e)
 
 
 
-function searchGiphy(searchQuery) {
-	var url = "http://localhost:1234/api/gif/search?searchKey=" + searchQuery; 
-
-	var container = document.querySelector(".all-gifs-results");
+async function searchGiphy(searchQuery) {
+	var url = "http://localhost:1234/api/gif/search?searchKey=" + searchQuery;
 
 	container.innerHTML = `
 	<div role="status" style="display:flex; justify-content:center; align-items:center; margin-top:100px">
@@ -69,23 +71,19 @@ function searchGiphy(searchQuery) {
 	`;
 
 
-	fetch(url)
-	.then(res => {
-		return res.json()
-	})
-	.then(result => {
-		pushToDOM(result);
-	})
-	.catch(err => {
-		console.log(err);
-	})
+	try {
+		const response = await fetch(url);
+		const gifs = await response.json();
+		renderGifs(gifs)
+	} catch (err) {
+		container.innerHTML = 'Error happened, please try again later'
+	}
 }
 
-function pushToDOM(images) {
+function renderGifs(images) {
 
-	console.log(images,'images');
 	// Find the container to hold the response in DOM
-	var container = document.querySelector(".all-gifs-results");
+	
 
 	// Clear the old content since this function 
 	// will be used on every search that we want
@@ -100,7 +98,7 @@ function pushToDOM(images) {
 
 		// Concatenate a new IMG tag
 		container.innerHTML += "<div class='col-3 single-gif pt-2 mt-2' data-url='" + src + "'><div class='image-container'><img src='"
-				+ src + "' class='container-image' loading='lazy'/></div></div>";
+			+ src + "' class='container-image' loading='lazy'/></div></div>";
 	});
 	const allGifs = document.querySelectorAll('.single-gif');
 
@@ -115,7 +113,12 @@ function pushToDOM(images) {
 			});
 
 			this.classList.add('gif-selected');
-			document.getElementById('add-gif-tool').innerHTML = '<img src="' + selectedUrl + '">';
+			if (!selectedUrls.includes(selectedUrl) && this.classList.contains("gif-selected")) {
+				selectedUrls.push(selectedUrl);
+			} else {
+				selectedUrls = selectedUrls.filter(item => item !== selectedUrl);
+			}
+			document.getElementById(Singleton.getValue()).innerHTML = '<img src="' + selectedUrl + '">';
 			editor.save().then((savedData) => {
 				console.log("savedData in select", savedData);
 			});
@@ -133,9 +136,9 @@ saveButton.addEventListener('click', () => {
 		document.getElementById('gifs-popup').style.display = 'none';
 		// empty search for gif input and remove old result
 		document.querySelector(".search-for-gif").value = '';
-		document.querySelector(".all-gifs-results").innerHTML = '';
+		container.innerHTML = '';
 		// remove inner input if we didn't select gif
-		let innerInput = document.getElementById('add-gif-tool').querySelector('input');
+		let innerInput = document.getElementById(Singleton.getValue()).querySelector('input');
 		if (innerInput !== null && innerInput !== undefined) {
 			innerInput.remove();
 		}

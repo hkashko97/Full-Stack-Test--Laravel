@@ -1,4 +1,4 @@
-let ADDGIF_ID = 'add-gif-tool'
+import Singleton from "./singleton";
 
 export default class AddGIF {
 	static get toolbox() {
@@ -81,7 +81,7 @@ export default class AddGIF {
 	render() {
 		this.wrapper = document.createElement('div');
 		this.wrapper.classList.add('simple-image');
-		this.wrapper.setAttribute("id", ADDGIF_ID);
+		this.wrapper.setAttribute("id", Singleton.increment());
 
 		if (this.data && this.data.url) {
 			this._createImage(this.data.url, this.data.caption);
